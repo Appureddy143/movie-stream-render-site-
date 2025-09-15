@@ -1,12 +1,10 @@
 <?php
-// Database connection configuration
-$host = 'localhost';
-$username = 'root';
-$password = ''; // Add your MySQL password if applicable
-$database = 'movie_streaming';
+$servername = getenv('DB_HOST') ?: 'localhost'; // Use localhost for testing, or DB_HOST if set
+$username = getenv('DB_USER') ?: 'root';  // Default to 'root' if not set
+$password = getenv('DB_PASS') ?: ''; // Empty password by default
+$dbname = getenv('DB_NAME') ?: 'movie_streaming';  // Default database
 
-// Create connection
-$conn = new mysqli($host, $username, $password, $database);
+$conn = new mysqli($servername, $username, $password, $dbname);
 
 // Check connection
 if ($conn->connect_error) {
