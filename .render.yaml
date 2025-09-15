@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: movie-stream-php
+    env: docker
+    plan: free
+    repo: https://github.com/Appureddy143/Movie_Stream
+    branch: main
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    region: oregon
+    healthCheckPath: /
