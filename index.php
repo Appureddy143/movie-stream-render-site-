@@ -1,17 +1,16 @@
 <?php
-// Start session at the top of the file to ensure it's available throughout the script
 session_start();
 
+// Fetch database credentials from environment variables
+$host = getenv('DB_HOST') ?: 'localhost';  // Default to localhost if not set
+$username = getenv('DB_USER') ?: 'root';
+$password = getenv('DB_PASS') ?: '';
+$database = getenv('DB_NAME') ?: 'movie_streaming';
 
-// Database Connection
-$host = 'localhost';
-$username = 'root';
-$password = ''; // Update with your database password
-$database = 'movie_streaming';
-
+// Create a new MySQL connection
 $conn = new mysqli($host, $username, $password, $database);
 
-// Check connection
+// Check for connection errors
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
@@ -62,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Close the database connection
 $conn->close();
 ?>
+
 
 
 <!DOCTYPE html>
@@ -165,3 +165,4 @@ $conn->close();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.min.js"></script>
 </body>
 </html>
+
