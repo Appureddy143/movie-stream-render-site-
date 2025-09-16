@@ -1,40 +1,42 @@
 <?php
 session_start();
 
-$host = getenv('DB_HOST') ?: 'dpg-d33ubc7diees739skee0-a';
+// Fetch environment variables or use defaults
+$host = getenv('DB_HOST') ?: 'dpg-d33ubc7diees739skee0-a.oregon-postgres.render.com';
 $port = getenv('DB_PORT') ?: '5432';
 $dbname = getenv('DB_NAME') ?: 'movie_streaming_d4xr';
 $user = getenv('DB_USER') ?: 'movie_streaming_d4xr_user';
 $password = getenv('DB_PASS') ?: 'your_password_here';
 
-// Create connection string
+// Build connection string
 $conn_string = "host=$host port=$port dbname=$dbname user=$user password=$password";
 
 // Connect to PostgreSQL
 $conn = pg_connect($conn_string);
-
 if (!$conn) {
     die("Error: Unable to connect to PostgreSQL database.");
 }
 
-// Now, use pg_query, pg_prepare, pg_execute for queries
-
+// Handle POST login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Sanitize email input
     $email = pg_escape_string($conn, $_POST['email']);
     $password_input = $_POST['password'];
 
-    // Prepare statement
+    // Prepare and execute query safely using pg_query_params
     $result = pg_query_params($conn, 'SELECT id, username, password, email FROM users WHERE email = $1', array($email));
 
     if ($result && pg_num_rows($result) > 0) {
         $user = pg_fetch_assoc($result);
 
-        // Verify password (assuming password stored as hashed)
+        // Verify hashed password
         if (password_verify($password_input, $user['password'])) {
+            // Set session variables
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['email'] === 'admin@example.com' ? 'admin' : 'user';
 
+            // Redirect based on role
             if ($_SESSION['role'] === 'admin') {
                 header("Location: admin_panel.php");
             } else {
@@ -48,7 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo "<script>alert('User not found!');</script>";
     }
 }
+
+// Close connection at the end (optional)
+// pg_close($conn);
 ?>
+
 
 
 
@@ -155,6 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.min.js"></script>
 </body>
 </html>
+
 
 
 
