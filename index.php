@@ -1,56 +1,46 @@
 <?php
-// Enable error reporting for debugging (REMOVE in production)
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// --- SECURE DATABASE CONNECTION ---
 
-session_start();
+// Get the internal database URL from Render's environment variables
+$db_url = getenv('DATABASE_URL');
 
-// Fetch environment variables or fallback to hardcoded values
-$host     = getenv('DB_HOST') ?: 'dpg-d33ubc7diees739skee0-a.oregon-postgres.render.com';
-$port     = getenv('DB_PORT') ?: '5432';
-$dbname   = getenv('DB_NAME') ?: 'movie_streaming_d4xr';
-$user     = getenv('DB_USER') ?: 'movie_streaming_d4xr_user';
-$password = getenv('DB_PASS') ?: '5z4fBfUcn5TRUiz19mkEKLZ8SlO515Yc'; // Replace with your actual password
-
-// PostgreSQL connection string with SSL required for Render
-$conn_string = "host=$host port=$port dbname=$dbname user=$user password=$password sslmode=require";
-
-// Connect to PostgreSQL
-$conn = pg_connect($conn_string);
-if (!$conn) {
-    die("❌ Error: Unable to connect to PostgreSQL database.");
+if (empty($db_url)) {
+    // If the DATABASE_URL is not set, the app will fail with a clear message.
+    die("❌ Error: DATABASE_URL environment variable is not set. Please set it in your Render dashboard.");
 }
 
-// Handle POST login form
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = pg_escape_string($conn, $_POST['email']);
-    $password_input = $_POST['password'];
+// Parse the URL to get the connection details
+$db_parts = parse_url($db_url);
 
-    $query = "SELECT id, username, password, email FROM users WHERE email = $1";
-    $result = pg_query_params($conn, $query, [$email]);
+$host = $db_parts['host'];
+$port = $db_parts['port'];
+$dbname = ltrim($db_parts['path'], '/');
+$user = $db_parts['user'];
+$password = $db_parts['pass'];
 
-    if ($result && pg_num_rows($result) > 0) {
-        $user = pg_fetch_assoc($result);
+// Build the DSN (Data Source Name) for PDO
+$dsn = "pgsql:host={$host};port={$port};dbname={$dbname};user={$user};password={$password}";
 
-        if (password_verify($password_input, $user['password'])) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['role'] = $user['email'] === 'admin@example.com' ? 'admin' : 'user';
-
-            // Redirect based on role
-            header("Location: " . ($_SESSION['role'] === 'admin' ? 'admin_panel.php' : 'home.php'));
-            exit;
-        } else {
-            echo "<script>alert('❌ Invalid password!');</script>";
-        }
-    } else {
-        echo "<script>alert('❌ User not found!');</script>";
-    }
+$pdo = null; // Initialize pdo variable
+try {
+    // Create a new PDO instance
+    $pdo = new PDO($dsn);
+    
+    // Set PDO to throw exceptions on error, which is good practice
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    // If the connection is successful, this line will be reached.
+    // We can set a success message to display later.
+    $connection_status = "✅ Successfully connected to the database!";
+    
+} catch (PDOException $e) {
+    // If connection fails, set an error message
+    // For debugging, you could log the error: error_log($e->getMessage());
+    $connection_status = "❌ Error: Unable to connect to PostgreSQL database.";
 }
+
+// --- HTML AND PAGE CONTENT ---
 ?>
-
-
 
 
 
@@ -130,3 +120,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.min.js"></script>
 </body>
 </html>
+
