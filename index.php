@@ -1,49 +1,45 @@
 <?php
 session_start();
 
-// ✅ Load database credentials from environment (Render-compatible)
-$host     = getenv('DB_HOST') ?: '127.0.0.1';  // Use TCP/IP instead of Unix socket
-$username = getenv('DB_USER') ?: 'root';
-$password = getenv('DB_PASS') ?: '';
-$database = getenv('DB_NAME') ?: 'movie_streaming';
+$host = getenv('DB_HOST') ?: 'dpg-d33ubc7diees739skee0-a';
+$port = getenv('DB_PORT') ?: '5432';
+$dbname = getenv('DB_NAME') ?: 'movie_streaming_d4xr';
+$user = getenv('DB_USER') ?: 'movie_streaming_d4xr_user';
+$password = getenv('DB_PASS') ?: 'your_password_here';
 
-// ✅ Optional: Log current DB host for debugging
-error_log("🔌 Connecting to MySQL on host: $host");
+// Create connection string
+$conn_string = "host=$host port=$port dbname=$dbname user=$user password=$password";
 
-// ✅ Establish database connection
-$conn = new mysqli($host, $username, $password, $database);
+// Connect to PostgreSQL
+$conn = pg_connect($conn_string);
 
-// ❌ Stop if connection fails
-if ($conn->connect_error) {
-    error_log("❗ DB Connection failed: " . $conn->connect_error);
-    die("Database connection error. Please try again later.");
+if (!$conn) {
+    die("Error: Unable to connect to PostgreSQL database.");
 }
 
-// ✅ Handle form submission
+// Now, use pg_query, pg_prepare, pg_execute for queries
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Sanitize and escape input
-    $email = $conn->real_escape_string($_POST['email']);
-    $password = $_POST['password'];
+    $email = pg_escape_string($conn, $_POST['email']);
+    $password_input = $_POST['password'];
 
-    // ✅ Use prepared statement to prevent SQL injection
-    $stmt = $conn->prepare("SELECT id, username, password, email FROM users WHERE email = ?");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    // Prepare statement
+    $result = pg_query_params($conn, 'SELECT id, username, password, email FROM users WHERE email = $1', array($email));
 
-    // ✅ If user exists
-    if ($result->num_rows > 0) {
-        $user = $result->fetch_assoc();
+    if ($result && pg_num_rows($result) > 0) {
+        $user = pg_fetch_assoc($result);
 
-        // ✅ Verify hashed password
-        if (password_verify($password, $user['password'])) {
-            // ✅ Set session variables
-            $_SESSION['user_id']  = $user['id'];
+        // Verify password (assuming password stored as hashed)
+        if (password_verify($password_input, $user['password'])) {
+            $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
-            $_SESSION['role']     = $user['email'] === 'admin@example.com' ? 'admin' : 'user';
+            $_SESSION['role'] = $user['email'] === 'admin@example.com' ? 'admin' : 'user';
 
-            // ✅ Redirect based on role
-            header("Location: " . ($_SESSION['role'] === 'admin' ? "admin_panel.php" : "home.php"));
+            if ($_SESSION['role'] === 'admin') {
+                header("Location: admin_panel.php");
+            } else {
+                header("Location: home.php");
+            }
             exit;
         } else {
             echo "<script>alert('Invalid password!');</script>";
@@ -51,12 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         echo "<script>alert('User not found!');</script>";
     }
-
-    $stmt->close();
 }
-
-$conn->close();
 ?>
+
 
 
 
@@ -162,5 +155,6 @@ $conn->close();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.min.js"></script>
 </body>
 </html>
+
 
 
