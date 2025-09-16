@@ -1,66 +1,63 @@
 <?php
 session_start();
 
-// Fetch database credentials from environment variables
-$host = getenv('DB_HOST') ?: 'localhost';  // Default to localhost if not set
+// ✅ Load database credentials from environment (Render-compatible)
+$host     = getenv('DB_HOST') ?: '127.0.0.1';  // Use TCP/IP instead of Unix socket
 $username = getenv('DB_USER') ?: 'root';
 $password = getenv('DB_PASS') ?: '';
 $database = getenv('DB_NAME') ?: 'movie_streaming';
 
-// Create a new MySQL connection
+// ✅ Optional: Log current DB host for debugging
+error_log("🔌 Connecting to MySQL on host: $host");
+
+// ✅ Establish database connection
 $conn = new mysqli($host, $username, $password, $database);
 
-// Check for connection errors
+// ❌ Stop if connection fails
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    error_log("❗ DB Connection failed: " . $conn->connect_error);
+    die("Database connection error. Please try again later.");
 }
 
-// Check if the form is submitted
+// ✅ Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Sanitize user inputs to avoid SQL injection
+    // Sanitize and escape input
     $email = $conn->real_escape_string($_POST['email']);
     $password = $_POST['password'];
 
-    // Prepare a prepared statement to prevent SQL injection
+    // ✅ Use prepared statement to prevent SQL injection
     $stmt = $conn->prepare("SELECT id, username, password, email FROM users WHERE email = ?");
-    $stmt->bind_param("s", $email);  // "s" for string
+    $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
 
+    // ✅ If user exists
     if ($result->num_rows > 0) {
-        // Fetch the user data
         $user = $result->fetch_assoc();
 
-        // Verify the password using password_verify()
+        // ✅ Verify hashed password
         if (password_verify($password, $user['password'])) {
-            // Successful login, set session variables
-            $_SESSION['user_id'] = $user['id'];
+            // ✅ Set session variables
+            $_SESSION['user_id']  = $user['id'];
             $_SESSION['username'] = $user['username'];
-            $_SESSION['role'] = $user['email'] === 'admin@example.com' ? 'admin' : 'user';
+            $_SESSION['role']     = $user['email'] === 'admin@example.com' ? 'admin' : 'user';
 
-            // Redirect based on user role
-            if ($_SESSION['role'] === 'admin') {
-                header("Location: admin_panel.php");
-            } else {
-                header("Location: home.php");
-            }
-            exit; // Ensure the script stops here
+            // ✅ Redirect based on role
+            header("Location: " . ($_SESSION['role'] === 'admin' ? "admin_panel.php" : "home.php"));
+            exit;
         } else {
-            // Invalid password
             echo "<script>alert('Invalid password!');</script>";
         }
     } else {
-        // User not found
         echo "<script>alert('User not found!');</script>";
     }
 
-    // Close the prepared statement
     $stmt->close();
 }
 
-// Close the database connection
 $conn->close();
 ?>
+
 
 
 
@@ -165,4 +162,5 @@ $conn->close();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.min.js"></script>
 </body>
 </html>
+
 
