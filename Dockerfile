@@ -1,18 +1,24 @@
-# Use official PHP 8.2 with Apache
+# Use official PHP image with Apache
 FROM php:8.2-apache
 
-# Install dependencies and PHP extensions for PostgreSQL and MySQLi
+# Install PostgreSQL PHP extensions
 RUN apt-get update && apt-get install -y libpq-dev \
-    && docker-php-ext-install mysqli pgsql pdo_pgsql
+    && docker-php-ext-install pgsql pdo_pgsql
 
 # Enable Apache rewrite module
 RUN a2enmod rewrite
 
-# Copy your project files into the container
+# Fix Apache ServerName warning
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+# Copy your PHP app to the container
 COPY . /var/www/html/
 
-# Set proper permissions for Apache
+# Set permissions (optional)
 RUN chown -R www-data:www-data /var/www/html
 
-# Expose port 80 for web traffic
+# Expose port 80
 EXPOSE 80
+
+# Run Apache in foreground
+CMD ["apache2-foreground"]
