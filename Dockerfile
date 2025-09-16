@@ -1,17 +1,18 @@
-# Use an official PHP image with Apache
+# Use official PHP 8.2 with Apache
 FROM php:8.2-apache
 
-# Install mysqli extension
-RUN docker-php-ext-install mysqli && docker-php-ext-enable mysqli
+# Install dependencies and PHP extensions for PostgreSQL and MySQLi
+RUN apt-get update && apt-get install -y libpq-dev \
+    && docker-php-ext-install mysqli pgsql pdo_pgsql
 
-# Enable Apache rewrite module (if needed)
+# Enable Apache rewrite module
 RUN a2enmod rewrite
 
-# Copy project files into the container
+# Copy your project files into the container
 COPY . /var/www/html/
 
-# Set permissions for Apache to access files
+# Set proper permissions for Apache
 RUN chown -R www-data:www-data /var/www/html
 
-# Expose port 80
+# Expose port 80 for web traffic
 EXPOSE 80
