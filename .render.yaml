@@ -3,7 +3,7 @@ services:
     name: movie-stream-php
     env: docker
     plan: free
-    repo: https://github.com/Appureddy143/Movie_Stream
+    repo: https://github.com/Appureddy143/movie-stream-render-site-
     branch: main
     dockerContext: .
     dockerfilePath: Dockerfile
