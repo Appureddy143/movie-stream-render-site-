@@ -10,16 +10,18 @@ if (empty($db_url)) {
 }
 
 // Parse the URL to get the connection details
+// Parse the URL to get the connection details
 $db_parts = parse_url($db_url);
 
 $host = $db_parts['host'];
-$port = $db_parts['port'];
+$port = $db_parts['port'] ?? 5432; // ✅ Use default if not provided
 $dbname = ltrim($db_parts['path'], '/');
 $user = $db_parts['user'];
 $password = $db_parts['pass'];
 
 // Build the DSN (Data Source Name) for PDO
 $dsn = "pgsql:host={$host};port={$port};dbname={$dbname};user={$user};password={$password}";
+
 
 $pdo = null; // Initialize pdo variable
 try {
@@ -120,4 +122,5 @@ try {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.min.js"></script>
 </body>
 </html>
+
 
