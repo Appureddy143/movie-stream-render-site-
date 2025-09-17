@@ -1,54 +1,56 @@
 <?php
-// PostgreSQL connection string
-$dsn = "pgsql:host=dpg-d33ubc7diees739skee0-a.oregon-postgres.render.com;port=5432;dbname=movie_streaming_d4xr;user=movie_streaming_d4xr_user;password=5z4fBfUcn5TRUiz19mkEKLZ8SlO515Yc";
+// Your PostgreSQL connection URL from Render
+$db_url = "postgresql://movie_streaming_d4xr_user:5z4fBfUcn5TRUiz19mkEKLZ8SlO515Yc@dpg-d33ubc7diees739skee0-a.oregon-postgres.render.com/movie_streaming_d4xr";
+
+// Parse the URL to get components
+$dbopts = parse_url($db_url);
+
+$host = $dbopts["host"];
+$port = isset($dbopts["port"]) ? $dbopts["port"] : 5432;
+$dbname = ltrim($dbopts["path"], '/');
+$user = $dbopts["user"];
+$password = $dbopts["pass"];
 
 try {
-    // Create PDO instance
-    $pdo = new PDO($dsn);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // PDO connection string for PostgreSQL
+    $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
 
+    $pdo = new PDO($dsn, $user, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
 } catch (PDOException $e) {
     die("DB Connection failed: " . $e->getMessage());
 }
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username']);
-    $email = trim($_POST['email']);
-    $dob = $_POST['dob'];
-    $avatar = trim($_POST['avatar']);
+    // Sanitize input
+    $username = htmlspecialchars($_POST['username']);
+    $email = htmlspecialchars($_POST['email']);
+    $dob = $_POST['dob'];  // Date format expected as YYYY-MM-DD
+    $avatar = htmlspecialchars($_POST['avatar']);
     $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
-    // Check if email already exists
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
-    $stmt->execute(['email' => $email]);
-    $count = $stmt->fetchColumn();
-
-    if ($count > 0) {
-        echo "<script>alert('Email is already registered!');</script>";
-        echo "<script>window.location.href='register.php';</script>";
+    // Check if email exists
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+    if ($stmt->fetchColumn() > 0) {
+        echo "<script>alert('Email is already registered!'); window.location.href='register.php';</script>";
         exit;
     }
 
-    // Insert new user
-    $insert = $pdo->prepare("INSERT INTO users (username, email, dob, avatar, password) VALUES (:username, :email, :dob, :avatar, :password)");
-    $success = $insert->execute([
-        'username' => $username,
-        'email' => $email,
-        'dob' => $dob,
-        'avatar' => $avatar,
-        'password' => $password
-    ]);
+    // Insert user
+    $insertStmt = $pdo->prepare("INSERT INTO users (username, email, dob, avatar, password) VALUES (?, ?, ?, ?, ?)");
+    $success = $insertStmt->execute([$username, $email, $dob, $avatar, $password]);
 
     if ($success) {
-        echo "<script>alert('Registration successful!');</script>";
-        echo "<script>window.location.href='login.php';</script>";
+        echo "<script>alert('Registration successful!'); window.location.href='login.php';</script>";
     } else {
-        echo "<script>alert('Error: Could not register.');</script>";
-        echo "<script>window.location.href='register.php';</script>";
+        echo "<script>alert('Error: Could not register.'); window.location.href='register.php';</script>";
     }
 }
 ?>
+<!-- Your HTML form below -->
+
 
 <!DOCTYPE html>
 <html lang="en">
